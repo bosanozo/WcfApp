@@ -1,0 +1,1 @@
+﻿<%@ ServiceHost Language="C#" Debug="true" Service="Common.Service.CommonService" Factory="WebApp.WcfServiceFactory" %>
