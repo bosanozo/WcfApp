@@ -25,6 +25,18 @@ namespace Common.Service
 
         //************************************************************************
         /// <summary>
+        /// 指定された検索IDのSQL、パラメータで検索を実行する。
+        /// </summary>
+        /// <param name="argSelectId">検索ID</param>
+        /// <param name="argParams">検索パラメータ</param>
+        /// <returns>検索結果</returns>
+        //************************************************************************
+        [OperationContract]
+        [FaultContract(typeof(ApplicationMessage))]
+        DataSet Select(string argSelectId, params object[] argParams);
+
+        //************************************************************************
+        /// <summary>
         /// 指定された検索IDのSQLファイルからSELECT文を作成し、検索を実行する。
         /// </summary>
         /// <param name="argSelectIdList">検索IDリスト</param>
@@ -35,7 +47,7 @@ namespace Common.Service
         //************************************************************************
         [OperationContract]
         [FaultContract(typeof(ApplicationMessage))]
-        DataSet Select(List<SelectId> argSelectIdList, List<SelectParam> argParamList,
+        DataSet SelectList(List<SelectId> argSelectIdList, List<SelectParam> argParamList,
             SelectType argSelectType, out ApplicationMessage argMessage);
 
         //************************************************************************

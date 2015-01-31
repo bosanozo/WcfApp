@@ -48,6 +48,19 @@ namespace Common.Service
 
         //************************************************************************
         /// <summary>
+        /// 指定された検索IDのSQL、パラメータで検索を実行する。
+        /// </summary>
+        /// <param name="argSelectId">検索ID</param>
+        /// <param name="argParams">検索パラメータ</param>
+        /// <returns>検索結果</returns>
+        //************************************************************************
+        public DataSet Select(string argSelectId, params object[] argParams)
+        {
+            return m_dataAccess.Select(argSelectId, argParams);
+        }
+
+        //************************************************************************
+        /// <summary>
         /// 指定された検索IDのSQLファイルからSELECT文を作成し、検索を実行する。
         /// </summary>
         /// <param name="argSelectIdList">検索IDリスト</param>
@@ -56,7 +69,7 @@ namespace Common.Service
         /// <param name="argMessage">返却メッセージ</param>
         /// <returns>検索結果</returns>
         //************************************************************************
-        public DataSet Select(List<SelectId> argSelectIdList, List<SelectParam> argParamList,
+        public DataSet SelectList(List<SelectId> argSelectIdList, List<SelectParam> argParamList,
             SelectType argSelectType, out ApplicationMessage argMessage)
         {
             // 最大検索件数取得
@@ -64,7 +77,7 @@ namespace Common.Service
 
             // 検索実行
             bool isOver;
-            var result = m_dataAccess.Select(argSelectIdList, argParamList, argSelectType, maxRow, out isOver);
+            var result = m_dataAccess.SelectList(argSelectIdList, argParamList, argSelectType, maxRow, out isOver);
 
             argMessage = null;
             // 検索結果なし

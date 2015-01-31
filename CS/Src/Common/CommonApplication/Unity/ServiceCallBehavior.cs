@@ -73,35 +73,26 @@ namespace Common.Unity
 
             if (form != null)
             {
-                var loc = new System.Drawing.Point(form.Left + (form.Width - 300) / 2, form.Top + (form.Height - 200) / 2);
                 // ダイアログを作成
-                var dlg = new WaitingDialog() { DispLocation = loc };
-                //dlg.DispLocation = new System.Drawing.Point(form.Left + (form.Width - dlg.Width) / 2, form.Top + (form.Height - dlg.Height) / 2);
-
-                var cts = new CancellationTokenSource();
-
-                var task = Task.Factory.StartNew(() =>
+                using (var dlg = new WaitingDialog())
                 {
-                    for (int i = 0; i < Properties.Settings.Default.DialogWaitTime * 1000 / 500; i++)
+                    // ハンドリングしたメソッドを非同期実行
+                    IAsyncResult ar = getNext().BeginInvoke(input, getNext, (asyncResult) =>
                     {
-                        // キャンセル要求がきていたら中断
-                        if (cts.IsCancellationRequested) break;
-                        Thread.Sleep(500);
-                    }
+                        // 結果を取得
+                        returnMessage = getNext().EndInvoke(asyncResult);
 
-                    // ダイアログを表示
-                    if (returnMessage == null) dlg.ShowDialog();
-                }, cts.Token);
+                        // UIスレッドで処理を実行
+                        form.Invoke((MethodInvoker)dlg.Close);
+                    }, null);
 
-                // メソッド実行
-                returnMessage = getNext()(input, getNext);
+                    // ダイアログ表示待ち
+                    if (!ar.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(Properties.Settings.Default.DialogWaitTime)))
+                        dlg.ShowDialog();
 
-                // ダイアログ表示キャンセル
-                cts.Cancel();
-                //task.Wait();
-
-                // ダイアログを消去
-                if (dlg.IsHandleCreated) dlg.Invoke((MethodInvoker)dlg.Dispose);
+                    // 結果がまだ無い場合の対処
+                    while (returnMessage == null) Thread.Sleep(10);
+                }
             }
             else
                 returnMessage = getNext()(input, getNext);

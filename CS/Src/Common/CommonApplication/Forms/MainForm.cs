@@ -52,7 +52,7 @@ namespace Common.Forms
 
             // 検索実行
             ApplicationMessage message;
-            var result = CommonService.Select(idList, paramList, SelectType.Limited, out message);
+            var result = CommonService.SelectList(idList, paramList, SelectType.Limited, out message);
 
             // 返却メッセージの表示
             if (message != null) CustomMessageBox.Show(message);

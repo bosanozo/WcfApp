@@ -66,7 +66,7 @@ namespace Common.Forms
 
             // 検索実行
             ApplicationMessage message;
-            m_dataSet = CommonService.Select(idList, paramList, SelectType.All, out message);
+            m_dataSet = CommonService.SelectList(idList, paramList, SelectType.All, out message);
 
             DataTable result = m_dataSet.Tables[0];
 
@@ -102,7 +102,7 @@ namespace Common.Forms
             var paramList2 = new List<SelectParam>() { new SelectParam("分類CD", "= @分類CD", "M001") };
 
             // 検索実行
-            var dataSet = CommonService.Select(idList2, paramList2, SelectType.All, out message);
+            var dataSet = CommonService.SelectList(idList2, paramList2, SelectType.All, out message);
             // コンボボックスにDataSourceを設定
             comboBox1.DataSource = dataSet.Tables["CMSM汎用基準値"];
 

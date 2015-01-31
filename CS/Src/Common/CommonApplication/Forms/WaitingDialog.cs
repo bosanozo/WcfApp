@@ -18,11 +18,6 @@ namespace Common.Forms
     {
         private DateTime m_startTime;
 
-        /// <summary>
-        /// 表示位置
-        /// </summary>
-        public Point DispLocation { get; set; }
-
         #region コンストラクタ
         //************************************************************************
         /// <summary>
@@ -47,11 +42,6 @@ namespace Common.Forms
         //************************************************************************
         private void ServiceCallingDialog_Shown(object sender, EventArgs e)
         {
-            // 表示位置設定
-            Left = DispLocation.X;
-            Top = DispLocation.Y;
-            //Activate();
-
             // タイマー起動
             var timer1 = new Timer();
             timer1.Interval = 500;

@@ -149,6 +149,38 @@ namespace Common.DataAccess
 
         //************************************************************************
         /// <summary>
+        /// 指定された検索IDのSQL、パラメータで検索を実行する。
+        /// </summary>
+        /// <param name="argSelectId">検索ID</param>
+        /// <param name="argParams">検索パラメータ</param>
+        /// <returns>検索結果</returns>
+        //************************************************************************
+        public DataSet Select(string argSelectId, params object[] argParams)
+        {
+            // SQL文を取得
+            var sqltext = Properties.Resources.ResourceManager.GetString(argSelectId);
+
+            // SELECT文の設定
+            IDbCommand cmd = CreateCommand(sqltext, m_dbContext);
+            DataAdapter.SelectCommand = cmd;
+
+            // パラメータの設定
+            for (int i = 0; i < argParams.Length; i++)
+                cmd.Parameters.Add(CreateCmdParam((i + 1).ToString(), argParams[i]));
+
+            // データセットの作成
+            DataSet result = new DataSet();
+            // データの取得
+            DataAdapter.Fill(result);
+            // テーブル名を設定
+            result.Tables["Table"].TableName = argSelectId;
+
+            // 検索結果の返却
+            return result;
+        }
+
+        //************************************************************************
+        /// <summary>
         /// 指定された検索IDのSQLファイルからSELECT文を作成し、検索を実行する。
         /// </summary>
         /// <param name="argSelectIdList">検索IDリスト</param>
@@ -158,7 +190,7 @@ namespace Common.DataAccess
         /// <param name="argIsOver">最大検索件数オーバーフラグ</param>
         /// <returns>検索結果</returns>
         //************************************************************************
-        public DataSet Select(List<SelectId> argSelectIdList, List<SelectParam> argParamList,
+        public DataSet SelectList(List<SelectId> argSelectIdList, List<SelectParam> argParamList,
             SelectType argSelectType, int argMaxRow, out bool argIsOver)
        {
             // データセットの作成
