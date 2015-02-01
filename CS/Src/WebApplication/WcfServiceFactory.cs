@@ -36,21 +36,15 @@ namespace WebApp
                 .AddMatchingRule(new CustomAttributeMatchingRule(typeof(UseTransactionAttribute), true));
 
             // Injection‚ÌÝ’è
-            foreach (string file in
-                Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, "Common*.dll", SearchOption.AllDirectories))
-            {
-                var asm = Assembly.LoadFile(file);
-
-                // IBaseService‚ðŒp³‚·‚éƒCƒ“ƒ^[ƒtƒF[ƒX‚ð“o˜^
-                container.RegisterTypes(
-                    asm.ExportedTypes.Where(t => t.IsClass == true && t.GetInterfaces().Contains(typeof(IBaseService))),
-                    WithMappings.FromMatchingInterface,
-                    getInjectionMembers: t => new InjectionMember[] 
+            // IBaseService‚ðŒp³‚·‚éƒCƒ“ƒ^[ƒtƒF[ƒX‚ð“o˜^
+            container.RegisterTypes(
+                AllClasses.FromLoadedAssemblies().Where(t => t.GetInterfaces().Contains(typeof(IBaseService))),
+                WithMappings.FromMatchingInterface,
+                getInjectionMembers: t => new InjectionMember[] 
                     {
                         new Interceptor<InterfaceInterceptor>(),
                         new InterceptionBehavior<PolicyInjectionBehavior>()
                     });
-            }
 
             // DbContext‚ð“o˜^
             container.RegisterType<BaseDbContext>(new HierarchicalLifetimeManager());
