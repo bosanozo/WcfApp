@@ -62,12 +62,8 @@
     <Compile Include="ApplicationMessage.cs" />
     <Compile Include="CommonSelectArg.cs" />
     <Compile Include="DebugConsoleAppender.cs" />
-    <Compile Include="MessageDataSet.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>MessageDataSet.xsd</DependentUpon>
-    </Compile>
     <Compile Include="MessageManager.cs" />
+    <Compile Include="MessageModel.cs" />
     <Compile Include="RowField.cs" />
     <Compile Include="SelectId.cs" />
     <Compile Include="SelectParam.cs" />
@@ -88,17 +84,6 @@
     <Compile Include="Wcf\CustomServiceBehaviorElement.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="MessageDataSet.xsc">
-      <DependentUpon>MessageDataSet.xsd</DependentUpon>
-    </None>
-    <None Include="MessageDataSet.xsd">
-      <Generator>MSDataSetGenerator</Generator>
-      <LastGenOutput>MessageDataSet.Designer.cs</LastGenOutput>
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="MessageDataSet.xss">
-      <DependentUpon>MessageDataSet.xsd</DependentUpon>
-    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup />

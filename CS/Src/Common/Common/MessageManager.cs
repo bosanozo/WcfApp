@@ -6,8 +6,11 @@
  * 2014.1.30, 新規作成
  ******************************************************************************/
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.Linq;
+using System.Xml.Serialization;
 
 namespace Common
 {
@@ -18,7 +21,7 @@ namespace Common
     //************************************************************************
     public class MessageManager
     {
-        private static MessageDataSet.MessageDataTable s_messageTable;
+        private static MessagesModel s_messages;
 
         /// <summary>
         /// メッセージファイル
@@ -36,19 +39,29 @@ namespace Common
         public static string GetMessage(string argMessageCode, params object[] argParams)
         {
             // メッセージ定義の読み込み
-            if (s_messageTable == null)
+            if (s_messages == null)
             {
-                s_messageTable = new MessageDataSet.MessageDataTable();
+                s_messages = new MessagesModel();
+                s_messages.Message = new List<MessageModel>();
+
+                XmlSerializer serializer = new XmlSerializer(typeof(MessagesModel));
 
                 string[] files = Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory +
                     Path.DirectorySeparatorChar + MessageFileDir, "Message*.xml");
-                foreach (string file in files) s_messageTable.ReadXml(file);
+
+                foreach (string file in files)
+                {
+                    MessagesModel messages;
+                    using (FileStream fs = new FileStream(file, FileMode.Open))
+                        messages = (MessagesModel)serializer.Deserialize(fs);
+
+                    s_messages.Message.AddRange(messages.Message);
+                }
             }
 
             // メッセージ定義の取得
-            DataRow[] rows = s_messageTable.Select("Code = '" + argMessageCode + "'");
-            if (rows.Length == 0) throw new Exception("Message.xmlに\"" + argMessageCode + "\"が登録されていません。");
-            return string.Format(rows[0]["Format"].ToString(), argParams);
+            MessageModel msg = s_messages.Message.Single(m => m.Code == argMessageCode);
+            return string.Format(msg.Format, argParams);
         }
     }
 }
