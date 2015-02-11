@@ -1,0 +1,22 @@
+[FWLib]
+UserInformation
+認証インターフェース
+共通処理インターフェース
+BCInvokerインターフェース
+メッセージインスペクタ
+
+[FWServer]
+認証BC, DAC
+認証WCFサービス
+共通処理BC, DAC
+共通処理WCFサービス
+BCInvokerサービス
+
+[FWClient]
+認証サービスプロキシ
+サービスユーティティ
+カスタムBCInvoker
+app.config
+
+CMCOM.SI
+web.config
