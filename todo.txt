@@ -20,3 +20,56 @@ app.config
 
 CMCOM.SI
 web.config
+
+・messageinspector
+Public Sub AfterReceiveReply(ByRef reply As Message, correlationState As Object)
+	Dim httpResponse = TryCast(reply.Properties(HttpResponseMessageProperty.Name), HttpResponseMessageProperty)
+	Dim setCookie As String = httpResponse.Headers(HttpResponseHeader.SetCookie)
+
+	If Not String.IsNullOrEmpty(setCookie) Then
+		s_cookieContainer.SetCookies(New Uri(ConfigurationManager.AppSettings("baseAddress")), setCookie)
+	End If
+End Sub
+
+Public Function BeforeSendRequest(ByRef request As Message, channel As IClientChannel) As Object
+	' ヘッダ情報の設定
+	request.Headers.Add(MessageHeader.CreateHeader("FormId", "ns", InformationManager.ClientInfo.FormId))
+
+	' クッキーを設定
+	If s_cookieContainer.Count > 0 Then
+		If Not request.Properties.ContainsKey(HttpRequestMessageProperty.Name) Then
+			request.Properties.Add(HttpRequestMessageProperty.Name, New HttpRequestMessageProperty())
+		End If
+
+		Dim httpRequest = TryCast(request.Properties(HttpRequestMessageProperty.Name), HttpRequestMessageProperty)
+		httpRequest.Headers(HttpRequestHeader.Cookie) = s_cookieContainer.GetCookieHeader(channel.RemoteAddress.Uri)
+	End If
+
+	Return Nothing
+End Function
+
+・global_asax
+Protected Sub Application_EndRequest(sender As Object, e As EventArgs)
+	If Request.CurrentExecutionFilePathExtension = ".svc" AndAlso Response.IsRequestBeingRedirected Then
+		Response.StatusCode = CInt(System.Net.HttpStatusCode.Unauthorized)
+	End If
+End Sub
+
+・OperationContract
+        [OperationContract(AsyncPattern = true)]
+        IAsyncResult BeginDoWork(string arg1, AsyncCallback callback, object state);
+        string EndDoWork(IAsyncResult ar);
+
+・サービスの実行
+            // サービスの実行(非同期)
+            service.BeginDoWork(textBox1.Text, (asyncResult) =>
+            {
+                var ret = service.EndDoWork(asyncResult);
+
+                // UIスレッドで処理を実行
+                Invoke(new SetDataDelegate((text) =>
+                {
+                    label1.Text = text;
+                }), ret);
+            }, null);
+        
