@@ -1,75 +1,88 @@
-[FWLib]
-UserInformation
-認証インターフェース
-共通処理インターフェース
-BCInvokerインターフェース
-メッセージインスペクタ
+⑧Oracle11gR2Client
+　win64_11gR2_client.zip
+⑨ODP.NET
+　ODAC112021Xcopy_x64.ZIP
+　install.bat odp.net4 C:\Oracle\product\11.2.0\client odac
+　install.bat oramts C:\Oracle\product\11.2.0\client odac
+  tnsnames.oraをnetwork\adminに作成
 
-[FWServer]
-認証BC, DAC
-認証WCFサービス
-共通処理BC, DAC
-共通処理WCFサービス
-BCInvokerサービス
+cleanLog.ps1
+# ファイル圧縮
+[System.Reflection.Assembly]::LoadFrom("C:\DIS-NET3\Application\lib\ICSharpCode.SharpZipLib.dll")
+$zip = New-Object ICSharpCode.SharpZipLib.Zip.FastZip
+$zip.CreateZip("C:\DIS-NET3\Release\log\log_" + (Get-Date -month (Get-Date).addmonths(-1).month -format yyyyMM) + ".zip", "C:\DIS-NET3\Release\log", $false, "[.]log", $null)
+# 圧縮済ファイル削除
+gci C:\DIS-NET3\Release\log\*.log | where {$_.LastWriteTime -lt (Get-Date -day 1 -hour 0 -minute 0 -second 0)} | ri
 
-[FWClient]
-認証サービスプロキシ
-サービスユーティティ
-カスタムBCInvoker
-app.config
+dirVerUp.ps1
+$pubdir = gci $args[0]
+$idx = $pubdir.Name.LastIndexOf("_") + 1
+$todir = Join-Path $args[0] ($pubdir.Name.SubString(0,$idx) + ([int]$pubdir.Name.SubString($idx) + 1))
+mv $pubdir.FullName $todir
 
-CMCOM.SI
-web.config
+program.cs
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Xml;
+using System.Text;
 
-・messageinspector
-Public Sub AfterReceiveReply(ByRef reply As Message, correlationState As Object)
-	Dim httpResponse = TryCast(reply.Properties(HttpResponseMessageProperty.Name), HttpResponseMessageProperty)
-	Dim setCookie As String = httpResponse.Headers(HttpResponseHeader.SetCookie)
+namespace PublishVerUp
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            if (args.Length != 2) return;
 
-	If Not String.IsNullOrEmpty(setCookie) Then
-		s_cookieContainer.SetCookies(New Uri(ConfigurationManager.AppSettings("baseAddress")), setCookie)
-	End If
-End Sub
+            if (!File.Exists(args[0])) return;
 
-Public Function BeforeSendRequest(ByRef request As Message, channel As IClientChannel) As Object
-	' ヘッダ情報の設定
-	request.Headers.Add(MessageHeader.CreateHeader("FormId", "ns", InformationManager.ClientInfo.FormId))
+            int curRev = AppRevUp(args[0]);
+            IndexRevUp(args[1], curRev);
+        }
 
-	' クッキーを設定
-	If s_cookieContainer.Count > 0 Then
-		If Not request.Properties.ContainsKey(HttpRequestMessageProperty.Name) Then
-			request.Properties.Add(HttpRequestMessageProperty.Name, New HttpRequestMessageProperty())
-		End If
+        private static int AppRevUp(string projUser)
+        {
+            string bak = projUser + ".bak";
+            File.Move(projUser, bak);
 
-		Dim httpRequest = TryCast(request.Properties(HttpRequestMessageProperty.Name), HttpRequestMessageProperty)
-		httpRequest.Headers(HttpRequestHeader.Cookie) = s_cookieContainer.GetCookieHeader(channel.RemoteAddress.Uri)
-	End If
+            XmlDocument doc = new XmlDocument();
+            doc.Load(bak);
 
-	Return Nothing
-End Function
+            // Revision取得
+            XmlNode node = doc.GetElementsByTagName("ApplicationRevision")[0];
+            int rev = int.Parse(node.InnerText);
+            node.InnerText = ((int)(rev + 1)).ToString();
 
-・global_asax
-Protected Sub Application_EndRequest(sender As Object, e As EventArgs)
-	If Request.CurrentExecutionFilePathExtension = ".svc" AndAlso Response.IsRequestBeingRedirected Then
-		Response.StatusCode = CInt(System.Net.HttpStatusCode.Unauthorized)
-	End If
-End Sub
+            // MinimumRequiredVersion設定
+            node = doc.GetElementsByTagName("MinimumRequiredVersion")[0];
+            node.InnerText = node.InnerText.Replace("." + rev, "." + (rev + 1));
+            
+            doc.Save(projUser);
+            File.Delete(bak);
 
-・OperationContract
-        [OperationContract(AsyncPattern = true)]
-        IAsyncResult BeginDoWork(string arg1, AsyncCallback callback, object state);
-        string EndDoWork(IAsyncResult ar);
+            return rev;
+        }
 
-・サービスの実行
-            // サービスの実行(非同期)
-            service.BeginDoWork(textBox1.Text, (asyncResult) =>
+        private static void IndexRevUp(string indexHtml, int curRev)
+        {
+            string bak = indexHtml + ".bak";
+            File.Move(indexHtml, bak);
+
+            using (StreamReader reader = new StreamReader(bak, Encoding.Default))
+            using (StreamWriter writer = new StreamWriter(indexHtml, false, Encoding.Default))
             {
-                var ret = service.EndDoWork(asyncResult);
+                string line;
 
-                // UIスレッドで処理を実行
-                Invoke(new SetDataDelegate((text) =>
+                // レコード読み込みループ
+                while ((line = reader.ReadLine()) != null)
                 {
-                    label1.Text = text;
-                }), ret);
-            }, null);
-        
+                    line = line.Replace("." + (curRev -1) + "</TD>", "." + curRev + "</TD>");
+                    writer.WriteLine(line);
+                }
+            }
+
+            File.Delete(bak);
+        }
+    }
+}
