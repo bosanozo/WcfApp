@@ -1,10 +1,13 @@
-⑧Oracle11gR2Client
-　win64_11gR2_client.zip
-⑨ODP.NET
-　ODAC112021Xcopy_x64.ZIP
-　install.bat odp.net4 C:\Oracle\product\11.2.0\client odac
-　install.bat oramts C:\Oracle\product\11.2.0\client odac
-  tnsnames.oraをnetwork\adminに作成
+・テスト環境のため最初はSSLは使用しないでよいか？
+・テストデータの準備は業務側
+・ビルドマシンはAPサーバとは別？
+・APサーバのIPアドレス
+・DBのユーザ/パスワード@SID
+・Administrator以外の管理者権限がある作業用のOSユーザ(niuser)が必要
+・c:\NI\NI01Server\CMCOM.SI, NLCOM.SI, Sql, TableDef, License
+        NI01App
+
+手順書印刷
 
 cleanLog.ps1
 # ファイル圧縮
@@ -13,6 +16,19 @@ $zip = New-Object ICSharpCode.SharpZipLib.Zip.FastZip
 $zip.CreateZip("C:\DIS-NET3\Release\log\log_" + (Get-Date -month (Get-Date).addmonths(-1).month -format yyyyMM) + ".zip", "C:\DIS-NET3\Release\log", $false, "[.]log", $null)
 # 圧縮済ファイル削除
 gci C:\DIS-NET3\Release\log\*.log | where {$_.LastWriteTime -lt (Get-Date -day 1 -hour 0 -minute 0 -second 0)} | ri
+
+publish.bat
+set srcDir=C:\DIS-NET3\publish\AppDIS3T
+set destDir=\\10.252.170.178\ap\CompressionDownloadServer_IT1
+
+del %destDir%\*.application
+for /D %%s in (%srcDir%\"Application Files"\C1CCMN001N01*) do for /D %%d in (%destDir%\"Application Files"\C1CCMN001N01*) do ren "%%d" %%~ns
+robocopy.exe "%srcDir%\Application Files" "%destDir%\Application Files" /mir /ndl /njh /njs /np /ns
+robocopy.exe %srcDir% %destDir% /ndl /njh /njs /np /ns
+
+C:\DIS-NET3\Release\PublishVerUp.exe C:\DIS-NET3\Client\src\C1CC\C1CCMN001\C1CCMN001N01\C1CCMN001N01.csproj %destDir%\index.htm
+powershell C:\DIS-NET3\Release\dirVerUp.ps1 '%srcDir%\Application Files'
+pause
 
 dirVerUp.ps1
 $pubdir = gci $args[0]
