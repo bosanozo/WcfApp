@@ -1,13 +1,10 @@
-・テスト環境のため最初はSSLは使用しないでよいか？
-・テストデータの準備は業務側
-・ビルドマシンはAPサーバとは別？
-・APサーバのIPアドレス
-・DBのユーザ/パスワード@SID
-・Administrator以外の管理者権限がある作業用のOSユーザ(niuser)が必要
-・c:\NI\NI01Server\CMCOM.SI, NLCOM.SI, Sql, TableDef, License
-        NI01App
-
-手順書印刷
+# 例外処理
+trap
+{
+    # エラーログ出力
+    OutputLog "Error" $programId $error[0]
+    exit -1    
+}
 
 cleanLog.ps1
 # ファイル圧縮
