@@ -1,10 +1,134 @@
-# 例外処理
-trap
-{
-    # エラーログ出力
-    OutputLog "Error" $programId $error[0]
-    exit -1    
-}
+１．各APの*.slnがあるフォルダで以下を実行
+del /S .#*
+del /S *.suo
+del /S *.csproj.user
+rmdir /S /Q CVS
+
+for /D %J IN (*) DO (
+if exist %~fJ\CVS rmdir /S /Q %~fJ\CVS
+if exist %~fJ\obj rmdir /S /Q %~fJ\obj
+)
+
+２．コンバート
+for /D %J IN (*) DO "C:\Program Files\Microsoft Visual Studio 10.0\Common7\IDE\devenv.exe" %~fJ\%~nJ.sln /upgrade
+for /D %J IN (*) DO (
+if exist %~fJ\_UpgradeReport_Files rmdir /S /Q %~fJ\_UpgradeReport_Files
+if exist %~fJ\Backup rmdir /S /Q %~fJ\Backup
+if exist %~fJ\%JN01\obj rmdir /S /Q %~fJ\%JN01\obj
+if exist %~fJ\%JN01F01\obj rmdir /S /Q %~fJ\%JN01F01\obj
+)
+del /S UpgradeLog.XML
+
+
+    public partial class Form1 : Form
+    {
+        private const string NewLine = "\r\n";
+
+        private const string DS_SRC =
+            "    {" + NewLine +
+            "        /// <summary>" + NewLine +
+            "        /// 必要なデザイナー変数です。" + NewLine +
+            "        /// </summary>" + NewLine +
+            "        private System.ComponentModel.IContainer components = null;" + NewLine +
+            NewLine +
+            "        /// <summary>" + NewLine +
+            "        /// 使用中のリソースをすべてクリーンアップします。" + NewLine +
+            "        /// </summary>" + NewLine +
+            "        /// <param name=\"disposing\">マネージ リソースが破棄される場合 true、破棄されない場合は false です。</param>" + NewLine +
+            "        protected override void Dispose(bool disposing)" + NewLine +
+            "        {" + NewLine +
+            "            if (disposing && (components != null))" + NewLine +
+            "            {" + NewLine +
+            "                components.Dispose();" + NewLine +
+            "            }" + NewLine +
+            "            base.Dispose(disposing);" + NewLine +
+            "        }" + NewLine;
+
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+        /// <summary>
+        /// DesignerCsを作成する。
+        /// </summary>
+        private void CreateDesignerCs(string fname)
+        {
+            using (StreamWriter sw = new StreamWriter(fname, false, Encoding.Default))
+            using (StreamWriter swds = new StreamWriter(fname.Replace(".cs", ".Designer.cs"), false, Encoding.Default))
+            using (StreamReader sr = new StreamReader(fname + ".bak", Encoding.Default))
+            {
+                string line;
+                bool ds = false;
+                int skip = 0;
+                while ((line = sr.ReadLine()) != null)
+                {
+                    if (skip > 0)
+                    {
+                        if (line.Contains("}")) skip--;
+                        continue;
+                    }
+
+                    line = line.TrimEnd().Replace("\t", "    ");
+
+                    if (line.Contains("namespace"))
+                    {
+                        swds.WriteLine(line);
+                        swds.WriteLine("{");
+                    }
+                    else if (line.Contains("public class"))
+                    {
+                        line = line.Replace("class", "partial class");
+                        swds.WriteLine("    partial class " + Path.GetFileNameWithoutExtension(fname));
+                        swds.WriteLine(DS_SRC);
+                    }
+                    else if (line.Contains("#region デザイナで生成されたコード") ||
+                        line.Contains("private void InitializeComponent()") ||
+                        line.Contains("#region 項目の属性設定"))
+                        //line.EndsWith("#region コントロール"))
+                    {
+                        ds = true;
+                    }
+                    else if (line.Contains("override void Dispose"))
+                    {
+                        skip = 3;
+                        continue;
+                    }
+
+                    // 行出力
+                    if (ds)
+                    {
+                        if (!line.Contains("components = null"))
+                            swds.WriteLine(line);
+                    }
+                    else sw.WriteLine(line);
+
+                    if (ds && line.Contains("#endregion"))
+                    {
+                        ds = false;
+                        swds.WriteLine();
+                    }
+                }
+
+                swds.WriteLine("    }");
+                swds.WriteLine("}");
+            }
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            foreach (string fname in Directory.GetFiles(textBox1.Text, "*G0?.cs", SearchOption.AllDirectories))
+            {
+                if (File.Exists(fname + ".bak")) continue;
+                File.Move(fname, fname + ".bak");
+
+                label1.Text = Path.GetFileNameWithoutExtension(fname);
+                CreateDesignerCs(fname);
+            }
+
+            MessageBox.Show("完了");
+        }
+    }
 
 cleanLog.ps1
 # ファイル圧縮
@@ -14,88 +138,3 @@ $zip.CreateZip("C:\DIS-NET3\Release\log\log_" + (Get-Date -month (Get-Date).addm
 # 圧縮済ファイル削除
 gci C:\DIS-NET3\Release\log\*.log | where {$_.LastWriteTime -lt (Get-Date -day 1 -hour 0 -minute 0 -second 0)} | ri
 
-publish.bat
-set srcDir=C:\DIS-NET3\publish\AppDIS3T
-set destDir=\\10.252.170.178\ap\CompressionDownloadServer_IT1
-
-del %destDir%\*.application
-for /D %%s in (%srcDir%\"Application Files"\C1CCMN001N01*) do for /D %%d in (%destDir%\"Application Files"\C1CCMN001N01*) do ren "%%d" %%~ns
-robocopy.exe "%srcDir%\Application Files" "%destDir%\Application Files" /mir /ndl /njh /njs /np /ns
-robocopy.exe %srcDir% %destDir% /ndl /njh /njs /np /ns
-
-C:\DIS-NET3\Release\PublishVerUp.exe C:\DIS-NET3\Client\src\C1CC\C1CCMN001\C1CCMN001N01\C1CCMN001N01.csproj %destDir%\index.htm
-powershell C:\DIS-NET3\Release\dirVerUp.ps1 '%srcDir%\Application Files'
-pause
-
-dirVerUp.ps1
-$pubdir = gci $args[0]
-$idx = $pubdir.Name.LastIndexOf("_") + 1
-$todir = Join-Path $args[0] ($pubdir.Name.SubString(0,$idx) + ([int]$pubdir.Name.SubString($idx) + 1))
-mv $pubdir.FullName $todir
-
-program.cs
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Xml;
-using System.Text;
-
-namespace PublishVerUp
-{
-    class Program
-    {
-        static void Main(string[] args)
-        {
-            if (args.Length != 2) return;
-
-            if (!File.Exists(args[0])) return;
-
-            int curRev = AppRevUp(args[0]);
-            IndexRevUp(args[1], curRev);
-        }
-
-        private static int AppRevUp(string projUser)
-        {
-            string bak = projUser + ".bak";
-            File.Move(projUser, bak);
-
-            XmlDocument doc = new XmlDocument();
-            doc.Load(bak);
-
-            // Revision取得
-            XmlNode node = doc.GetElementsByTagName("ApplicationRevision")[0];
-            int rev = int.Parse(node.InnerText);
-            node.InnerText = ((int)(rev + 1)).ToString();
-
-            // MinimumRequiredVersion設定
-            node = doc.GetElementsByTagName("MinimumRequiredVersion")[0];
-            node.InnerText = node.InnerText.Replace("." + rev, "." + (rev + 1));
-            
-            doc.Save(projUser);
-            File.Delete(bak);
-
-            return rev;
-        }
-
-        private static void IndexRevUp(string indexHtml, int curRev)
-        {
-            string bak = indexHtml + ".bak";
-            File.Move(indexHtml, bak);
-
-            using (StreamReader reader = new StreamReader(bak, Encoding.Default))
-            using (StreamWriter writer = new StreamWriter(indexHtml, false, Encoding.Default))
-            {
-                string line;
-
-                // レコード読み込みループ
-                while ((line = reader.ReadLine()) != null)
-                {
-                    line = line.Replace("." + (curRev -1) + "</TD>", "." + curRev + "</TD>");
-                    writer.WriteLine(line);
-                }
-            }
-
-            File.Delete(bak);
-        }
-    }
-}
