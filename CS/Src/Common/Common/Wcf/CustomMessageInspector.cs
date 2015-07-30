@@ -1,6 +1,10 @@
-﻿using System.ServiceModel;
+﻿using System;
+using System.Configuration;
+using System.ServiceModel;
 using System.ServiceModel.Channels;
 using System.ServiceModel.Dispatcher;
+
+using System.Linq;
 
 using System.Net;
 
@@ -24,9 +28,13 @@ namespace Common.Wcf
         /// <param name="reply">Message</param>
         /// <param name="correlationState">object</param>
         //************************************************************************
-        public void AfterReceiveReply(ref Message reply, object correlationState)
+        public void AfterReceiveReply(ref Message reply, object correlationState)        
         {
-            //var aaa = ((HttpResponseMessageProperty)reply.Properties[HttpResponseMessageProperty.Name]).Headers["Set-Cookie"];
+            var httpResponse = reply.Properties[HttpResponseMessageProperty.Name] as HttpResponseMessageProperty;
+            string setCookie = httpResponse.Headers[HttpResponseHeader.SetCookie];
+
+            if (!string.IsNullOrEmpty(setCookie))
+                s_cookieContainer.SetCookies(new Uri(ConfigurationManager.AppSettings["baseAddress"]), setCookie);
         }
 
         //************************************************************************
@@ -41,10 +49,19 @@ namespace Common.Wcf
         {
             // ヘッダ情報の設定
             request.Headers.Add(MessageHeader.CreateHeader("FormId", "ns", InformationManager.ClientInfo.FormId));
-            
+
             // クッキーコンテナを設定
-            var cookieManager = channel.GetProperty<IHttpCookieContainerManager>();
-	        if (cookieManager != null) cookieManager.CookieContainer = s_cookieContainer;
+            //var cookieManager = channel.GetProperty<IHttpCookieContainerManager>();
+	        //if (cookieManager != null) cookieManager.CookieContainer = s_cookieContainer;
+
+            if (s_cookieContainer.Count > 0)
+            {
+                if (!request.Properties.ContainsKey(HttpRequestMessageProperty.Name))
+                    request.Properties.Add(HttpRequestMessageProperty.Name, new HttpRequestMessageProperty());
+
+                var httpRequest = request.Properties[HttpRequestMessageProperty.Name] as HttpRequestMessageProperty;
+                httpRequest.Headers[HttpRequestHeader.Cookie] = s_cookieContainer.GetCookieHeader(channel.RemoteAddress.Uri);
+            }
 
             return null;
         }
