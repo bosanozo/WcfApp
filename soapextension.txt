@@ -1,0 +1,92 @@
+		private const int BufferSize = 64 * 1024;
+
+		public override void ProcessMessage(SoapMessage message)
+		{
+            if (message.Stage == SoapMessageStage.BeforeSerialize)
+            {
+                message.ContentEncoding = "gzip";
+            }
+            else if (message.Stage == SoapMessageStage.AfterSerialize)
+            {
+                m_newStream.Position = 0;
+                C1CCCompressHelper.GetCompressedStream(m_newStream, m_oldStream);
+                m_newStream.Position = 0;
+            }
+            else if (message.Stage == SoapMessageStage.BeforeDeserialize)
+            {
+                try
+                {
+                    if (message.ContentEncoding == "gzip")
+                    {
+                        s_logger.Log(OmLogLevel.Debug, s_fqcn, "ProcessMessage", "GZIP解凍を行います。", null);
+
+                        // デシリアライズの前処理・データの解凍を行う
+                        C1CCCompressHelper.GetUncompressedStream(m_oldStream, m_newStream);
+                        m_newStream.Position = 0;
+                    }
+                    else
+                    {
+                        Copy(m_oldStream, m_newStream);
+                        m_newStream.Position = 0;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    s_logger.Log(OmLogLevel.Verbo, s_fqcn, "ProcessMessage", "デシリアライズ前処理にて例外が発生しました。", ex);
+
+                    throw ex;
+                }
+            }
+            else if (message.Stage == SoapMessageStage.AfterDeserialize)
+            {
+                return;
+            }
+		}
+		
+        public override Stream ChainStream(Stream stream)
+        {
+                m_oldStream = stream;
+                m_newStream = new MemoryStream();
+                return m_newStream;
+        }
+
+        //***************************************************************************
+		/// <summary>
+		/// ストリームの内容を圧縮します。
+		/// </summary>
+		/// <param name="argInStream">圧縮対象ストリーム</param>
+		/// <param name="argOutStream">圧縮後ストリーム</param>
+		//***************************************************************************
+		public static void GetCompressedStream(Stream argInStream, Stream argOutStream)
+		{
+                int num;
+                byte[] buf = new byte[BufferSize];
+
+                using (GZipStream gos = new GZipStream(argOutStream, CompressionMode.Compress))
+                {
+                    while ((num = argInStream.Read(buf, 0, buf.Length)) > 0) gos.Write(buf, 0, num);
+                }
+		}
+
+		//***************************************************************************
+		/// <summary>
+		/// ストリームの内容を解凍します。
+		/// </summary>
+		/// <param name="argInStream">解凍対象ストリーム</param>
+		/// <param name="argOutStream">解凍後ストリーム</param>
+		//***************************************************************************
+		public static void GetUncompressedStream(Stream argInStream, Stream argOutStream)
+		{
+                int num;
+                byte[] buf = new byte[BufferSize];
+                argOutStream.Position = 0;
+
+                using (GZipStream gis = new GZipStream(argInStream, CompressionMode.Decompress))
+                {
+                    while ((num = gis.Read(buf, 0, buf.Length)) > 0) argOutStream.Write(buf, 0, num);
+                }
+
+				argOutStream.Flush();
+		}
+
+		
