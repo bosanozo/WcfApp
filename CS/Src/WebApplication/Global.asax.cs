@@ -4,6 +4,8 @@ using System.Linq;
 using System.Web;
 using System.Web.Mvc;
 using System.Web.Optimization;
+using System.Web.Security;
+using System.Web.SessionState;
 using System.Web.Routing;
 
 using System.Web.ApplicationServices;
@@ -47,10 +49,17 @@ namespace WebApplication
         protected void Application_BeginRequest(object sender, EventArgs e)
         {
             // From認証のリダイレクト不可
-            if (Context.Request.CurrentExecutionFilePathExtension == ".svc")
-                Context.Response.SuppressFormsAuthenticationRedirect = true;
+            //if (Context.Request.CurrentExecutionFilePathExtension == ".svc")
+            //    Context.Response.SuppressFormsAuthenticationRedirect = true;
         }
 
+        protected void Application_EndRequest(object sender, EventArgs e)
+        {
+            if (Request.CurrentExecutionFilePathExtension == ".svc" && Response.IsRequestBeingRedirected)
+                Response.StatusCode = (int)System.Net.HttpStatusCode.Unauthorized;
+        }
+
+        
         protected void Application_Error(object sender, EventArgs e)
         {
             m_logger.Error(e);
