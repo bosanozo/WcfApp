@@ -1,4 +1,4 @@
- 		private const int BufferSize = 64 * 1024;
+		private const int BufferSize = 64 * 1024;
 
 		public override void ProcessMessage(SoapMessage message)
 		{
